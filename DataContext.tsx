@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { Visit, Speaker, Host, ActionItem, SyncConfig, AppSettings } from './types';
 import { fetchSheetData, normalizeString } from './utils/sheetSync';
 import { GoogleGenAI } from "@google/genai";
+import { notificationManager } from './utils/notificationManager';
 
 interface Toast {
   message: string;
@@ -205,7 +206,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (v.status === 'Cancelled') return;
       const vDate = new Date(v.date);
       const diff = Math.ceil((vDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
-      
+
       if (!v.hostId && diff >= 0) {
         newActions.push({
           id: `host-req-${v.id}`,
@@ -231,6 +232,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setActions(newActions.filter(a => !dismissedActionIds.includes(a.id)));
   }, [visits, dismissedActionIds, isInitialized]);
+
+  // Programmer les notifications pour les visites futures
+  useEffect(() => {
+    if (!isInitialized || !appSettings.notifications.push) return;
+
+    const futureVisits = visits.filter(v => {
+      if (v.status === 'Cancelled') return false;
+      const visitDate = new Date(v.date);
+      const today = new Date();
+      return visitDate > today;
+    });
+
+    if (futureVisits.length > 0) {
+      console.log(`Programmation des notifications pour ${futureVisits.length} visites futures`);
+      notificationManager.scheduleAllUpcomingVisits(futureVisits);
+    }
+  }, [visits, isInitialized, appSettings.notifications.push]);
 
   const addVisit = (v: Partial<Visit>) => setVisits(p => [...p, { ...v, id: `man-${Date.now()}` } as Visit]);
   const updateVisit = (id: string, v: Partial<Visit>) => setVisits(p => p.map(x => x.id === id ? { ...x, ...v } : x));

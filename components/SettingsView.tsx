@@ -35,7 +35,7 @@ const Toggle: React.FC<{
 
 const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
   const { theme, setTheme } = useTheme();
-  const { appSettings, updateAppSettings, resetAllData, syncData, isSyncing, syncConfig } = useData();
+  const { appSettings, updateAppSettings, resetAllData, syncData, isSyncing, syncConfig, showToast } = useData();
   const [currentView, setCurrentView] = useState<'main' | 'data'>('main');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -279,13 +279,32 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                 <div className="flex items-center justify-between p-4">
                   <div className="flex flex-col">
                     <span className="text-gray-900 dark:text-white font-medium">Notifications Push</span>
-                    <span className="text-xs text-gray-500">Alertes temps réel</span>
+                    <span className="text-xs text-gray-500">Alertes temps réel pour Android</span>
                   </div>
-                  <Toggle 
+                  <Toggle
                     checked={appSettings.notifications.push}
                     onChange={(value) => handleNotificationChange('push', value)}
                   />
                 </div>
+                {appSettings.notifications.push && (
+                  <div className="p-4 pt-3">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { notificationManager } = await import('../utils/notificationManager');
+                          await notificationManager.testNotification();
+                          showToast('Notification de test envoyée !', 'success');
+                        } catch (error) {
+                          console.error('Erreur notification test:', error);
+                          showToast('Erreur lors du test des notifications', 'error');
+                        }
+                      }}
+                      className="w-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                    >
+                      Tester les notifications
+                    </button>
+                  </div>
+                )}
               </div>
             </section>
           </div>
