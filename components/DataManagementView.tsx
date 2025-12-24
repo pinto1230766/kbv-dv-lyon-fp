@@ -17,7 +17,7 @@ interface DuplicateGroup {
 }
 
 const DataManagementView: React.FC<DataManagementViewProps> = ({ onBack }) => {
-  const { syncConfig, updateSyncConfig, syncData, isSyncing, exportData, openGoogleSheet, speakers, mergeSpeakers, importData, seedOfficialSpeakers } = useData();
+  const { syncConfig, updateSyncConfig, syncData, isSyncing, exportData, openGoogleSheet, speakers, hosts, visits, mergeSpeakers, importData, seedOfficialSpeakers } = useData();
   const [activeTab, setActiveTab] = useState<'sync' | 'backup' | 'duplicates'>('sync');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,11 +58,13 @@ const DataManagementView: React.FC<DataManagementViewProps> = ({ onBack }) => {
     setResolvedIds([]);
     setTimeout(() => {
         const found: DuplicateGroup[] = [];
-        const processed = new Set<string>();
+
+        // Scan des orateurs
+        const processedSpeakers = new Set<string>();
         for(let i=0; i<speakers.length; i++) {
-            if(processed.has(speakers[i].id)) continue;
+            if(processedSpeakers.has(speakers[i].id)) continue;
             for(let j=i+1; j<speakers.length; j++) {
-                if(processed.has(speakers[j].id)) continue;
+                if(processedSpeakers.has(speakers[j].id)) continue;
                 const sA = speakers[i];
                 const sB = speakers[j];
                 const nameSim = getSimilarity(sA.name.toLowerCase(), sB.name.toLowerCase());
@@ -74,20 +76,102 @@ const DataManagementView: React.FC<DataManagementViewProps> = ({ onBack }) => {
                    if (nameSim > 0.8) reasons.push(`Noms similaires`);
                    if (phoneMatch) reasons.push('Même téléphone');
                    found.push({
-                       id: `dup-${sA.id}-${sB.id}`,
+                       id: `dup-speaker-${sA.id}-${sB.id}`,
                        type: 'speaker',
                        score: Math.round(Math.max(nameSim * 100, phoneMatch ? 100 : 0)),
                        detectedBy: reasons,
                        itemA: sA,
                        itemB: sB
                    });
-                   processed.add(sB.id);
+                   processedSpeakers.add(sB.id);
                 }
             }
         }
+
+        // Scan des hôtes
+        const processedHosts = new Set<string>();
+        for(let i=0; i<hosts.length; i++) {
+            if(processedHosts.has(hosts[i].id)) continue;
+            for(let j=i+1; j<hosts.length; j++) {
+                if(processedHosts.has(hosts[j].id)) continue;
+                const hA = hosts[i];
+                const hB = hosts[j];
+                const nameSim = getSimilarity(hA.name.toLowerCase(), hB.name.toLowerCase());
+                const locationSim = getSimilarity(hA.location.toLowerCase(), hB.location.toLowerCase());
+                const phoneA = hA.phone?.replace(/\D/g, '');
+                const phoneB = hB.phone?.replace(/\D/g, '');
+                const phoneMatch = phoneA && phoneB && phoneA === phoneB && phoneA.length > 5;
+                if (nameSim > 0.8 || locationSim > 0.8 || phoneMatch) {
+                   const reasons = [];
+                   if (nameSim > 0.8) reasons.push(`Noms similaires`);
+                   if (locationSim > 0.8) reasons.push(`Adresses similaires`);
+                   if (phoneMatch) reasons.push('Même téléphone');
+                   found.push({
+                       id: `dup-host-${hA.id}-${hB.id}`,
+                       type: 'host',
+                       score: Math.round(Math.max(nameSim * 100, locationSim * 100, phoneMatch ? 100 : 0)),
+                       detectedBy: reasons,
+                       itemA: hA,
+                       itemB: hB
+                   });
+                   processedHosts.add(hB.id);
+                }
+            }
+        }
+
+        // Scan des visites (même orateur + même date)
+        const processedVisits = new Set<string>();
+        for(let i=0; i<visits.length; i++) {
+            if(processedVisits.has(visits[i].id)) continue;
+            for(let j=i+1; j<visits.length; j++) {
+                if(processedVisits.has(visits[j].id)) continue;
+                const vA = visits[i];
+                const vB = visits[j];
+                if (vA.speakerName === vB.speakerName && vA.date === vB.date) {
+                   found.push({
+                       id: `dup-visit-${vA.id}-${vB.id}`,
+                       type: 'visit',
+                       score: 100,
+                       detectedBy: ['Même orateur et même date'],
+                       itemA: vA,
+                       itemB: vB
+                   });
+                   processedVisits.add(vB.id);
+                }
+            }
+        }
+
+        // Scan des discours (même numéro ou même titre)
+        const processedSpeeches = new Set<string>();
+        for(let i=0; i<visits.length; i++) {
+            if(processedSpeeches.has(visits[i].id)) continue;
+            for(let j=i+1; j<visits.length; j++) {
+                if(processedSpeeches.has(visits[j].id)) continue;
+                const vA = visits[i];
+                const vB = visits[j];
+                const numberMatch = vA.discoursNumber && vB.discoursNumber && vA.discoursNumber === vB.discoursNumber;
+                const titleSim = vA.discoursTitle && vB.discoursTitle ?
+                    getSimilarity(vA.discoursTitle.toLowerCase(), vB.discoursTitle.toLowerCase()) : 0;
+                if (numberMatch || titleSim > 0.8) {
+                   const reasons = [];
+                   if (numberMatch) reasons.push('Même numéro de discours');
+                   if (titleSim > 0.8) reasons.push('Titres similaires');
+                   found.push({
+                       id: `dup-speech-${vA.id}-${vB.id}`,
+                       type: 'visit',
+                       score: numberMatch ? 100 : Math.round(titleSim * 100),
+                       detectedBy: reasons,
+                       itemA: vA,
+                       itemB: vB
+                   });
+                   processedSpeeches.add(vB.id);
+                }
+            }
+        }
+
         setDuplicates(found);
         setScanStatus('results');
-    }, 1000); 
+    }, 1500); // Increased timeout for more comprehensive scan
   };
   
   const handleResolve = (duplicateId: string, action: 'keepA' | 'keepB' | 'merge') => {
@@ -252,7 +336,7 @@ const DataManagementView: React.FC<DataManagementViewProps> = ({ onBack }) => {
                    <>
                        <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">content_copy</span>
                        <h3 className="font-bold dark:text-white">Nettoyage des doublons</h3>
-                       <p className="text-xs text-gray-500 mb-4">Analyse des orateurs créés manuellement qui pourraient déjà exister.</p>
+                       <p className="text-xs text-gray-500 mb-4">Analyse complète de toutes les données (orateurs, hôtes, visites, discours).</p>
                        <button onClick={startScan} className="w-full bg-primary/10 text-primary py-3 rounded-xl font-bold">Lancer l'analyse</button>
                    </>
                )}
