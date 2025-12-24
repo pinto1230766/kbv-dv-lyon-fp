@@ -1,0 +1,143 @@
+
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Speaker } from '../types';
+import { useData } from '../DataContext';
+
+interface AddSpeakerViewProps {
+  onClose: () => void;
+  onSave: (speaker: Partial<Speaker>) => void;
+  speakerToEdit?: Speaker;
+}
+
+const AddSpeakerView: React.FC<AddSpeakerViewProps> = ({ onClose, onSave, speakerToEdit }) => {
+  const { speakers } = useData();
+  const [formData, setFormData] = useState<Partial<Speaker>>({
+    status: 'Actif',
+    name: '',
+    congregation: ''
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isEditing = !!speakerToEdit;
+
+  const congregations = useMemo(() => {
+      const all = speakers.map(s => s.congregation).filter(Boolean);
+      return Array.from(new Set(all)).sort();
+  }, [speakers]);
+
+  useEffect(() => {
+    if (isEditing) {
+      setFormData(speakerToEdit);
+    }
+  }, [speakerToEdit, isEditing]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({...prev, [name]: value}));
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, avatar: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const isValid = useMemo(() => {
+      return (formData.firstName || formData.lastName || formData.name) && formData.congregation && formData.congregation !== '';
+  }, [formData]);
+
+  const handleSave = () => {
+    if (!isValid) return;
+    
+    // Assurer que le champ name est rempli à partir du prénom/nom si nécessaire
+    const finalData = { ...formData };
+    if (!finalData.name && (finalData.firstName || finalData.lastName)) {
+        finalData.name = `${finalData.firstName || ''} ${finalData.lastName || ''}`.trim();
+    }
+
+    onSave(finalData);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center md:bg-black/50 md:backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full md:max-w-2xl md:h-[85vh] h-full flex flex-col bg-background-light dark:bg-background-dark md:rounded-2xl shadow-2xl overflow-hidden font-display antialiased text-gray-900 dark:text-white animate-in slide-in-from-bottom duration-300">
+        
+        <input 
+          type="file" 
+          ref={fileInputRef}
+          onChange={handlePhotoUpload}
+          className="hidden"
+          accept="image/*"
+        />
+
+        <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-gray-200 dark:border-white/5">
+          <div className="flex items-center justify-between px-4 h-[60px]">
+            <button onClick={onClose} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"><span className="material-symbols-outlined">close</span></button>
+            <h1 className="text-base font-bold leading-tight tracking-tight text-center flex-1">{isEditing ? 'Modifier Orateur' : 'Nouveau Orateur'}</h1>
+            <button 
+              onClick={handleSave}
+              disabled={!isValid}
+              className={`px-4 py-1.5 text-sm font-bold text-white rounded-lg shadow-lg transition-all ${isValid ? 'bg-primary shadow-primary/20' : 'bg-gray-300 dark:bg-gray-700 opacity-50 cursor-not-allowed'}`}
+            >
+              Enregistrer
+            </button>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto no-scrollbar pb-[120px] md:pb-6 w-full max-w-md mx-auto px-4">
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <div className="w-28 h-28 rounded-full bg-gray-100 dark:bg-surface-dark border-2 border-dashed border-gray-300 dark:border-white/10 flex items-center justify-center overflow-hidden shadow-sm transition-all group-hover:border-primary bg-cover bg-center" style={{backgroundImage: `url(${formData.avatar})`}}>
+                 {!formData.avatar && <span className="material-symbols-outlined text-5xl text-gray-300 dark:text-white/20">person_add</span>}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"><span className="material-symbols-outlined text-white">edit</span></div>
+              </div>
+              <div className="absolute bottom-0 right-0 w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-background-dark transform transition-transform group-hover:scale-110"><span className="material-symbols-outlined text-[18px]">photo_camera</span></div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-gray-500 dark:text-text-muted uppercase tracking-wider ml-1">Identité <span className="text-primary">*</span></h3>
+              <div className="grid grid-cols-2 gap-3">
+                 <input name="firstName" value={formData.firstName || ''} onChange={handleChange} className="w-full h-14 px-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:bg-white dark:focus:bg-black/40 focus:border-primary focus:ring-0 transition-all font-medium text-gray-900 dark:text-white placeholder-gray-400" placeholder="Prénom" />
+                 <input name="lastName" value={formData.lastName || ''} onChange={handleChange} className="w-full h-14 px-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:bg-white dark:focus:bg-black/40 focus:border-primary focus:ring-0 transition-all font-medium text-gray-900 dark:text-white placeholder-gray-400" placeholder="Nom" />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-gray-500 dark:text-text-muted uppercase tracking-wider ml-1">Contact</h3>
+              <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 material-symbols-outlined">call</span>
+                  <input name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full h-14 pl-12 pr-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:bg-white dark:focus:bg-black/40 focus:border-primary focus:ring-0 transition-all font-medium text-gray-900 dark:text-white placeholder-gray-400" placeholder="Téléphone" type="tel" />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-gray-500 dark:text-text-muted uppercase tracking-wider ml-1">Congrégation <span className="text-primary">*</span></h3>
+              <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 material-symbols-outlined">groups</span>
+                  <input name="congregation" value={formData.congregation || ''} onChange={handleChange} list="congregations-list" className="w-full h-14 pl-12 pr-10 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:bg-white dark:focus:bg-black/40 focus:border-primary focus:ring-0 transition-all font-medium text-gray-900 dark:text-white placeholder-gray-400" placeholder="Choisir une congrégation..." type="text" />
+                  <datalist id="congregations-list">{congregations.map((cong, idx) => <option key={idx} value={cong} />)}</datalist>
+              </div>
+                
+              <div className="flex items-center justify-between p-4 rounded-xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/5 shadow-sm">
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">Disponibilité</span>
+                  <div className="flex bg-gray-100 dark:bg-surface-highlight/30 p-1 rounded-lg">
+                      {['Actif', 'Inactif', 'En pause'].map(status => (
+                          <button key={status} onClick={() => setFormData(p => ({...p, status: status as any}))} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${formData.status === status ? 'bg-white dark:bg-surface-dark shadow text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}>{status}</button>
+                      ))}
+                  </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default AddSpeakerView;
