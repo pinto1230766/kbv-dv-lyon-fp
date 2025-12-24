@@ -299,13 +299,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
               Gestion des données & Sauvegardes
             </button>
 
-            <button
-              onClick={() => setShowDuplicatesModal(true)}
-              className="w-full bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-300 font-bold py-3.5 rounded-2xl shadow-sm border border-amber-200 dark:border-amber-800/30 active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined">search_check</span>
-              Vérifier les doublons
-            </button>
+
 
             <div className="border-t border-gray-200 dark:border-white/10 pt-4 mt-6">
                 <button
