@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../DataContext';
 import { Speaker, Visit, TabType, NavigationProps } from '../types';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, Cell } from 'recharts';
+import { shortenCongregationName } from '../utils/sheetSync';
 
 interface SpeakerProfileProps {
   speaker: Speaker;
@@ -111,7 +112,7 @@ const SpeakerProfile: React.FC<SpeakerProfileProps> = ({ speaker, onBack, onEdit
               </div>
               <div className="text-center space-y-1 w-full">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{speaker.name}</h2>
-                <p className="text-sm font-bold text-primary">{speaker.congregation}</p>
+                <p className="text-sm font-bold text-primary">{shortenCongregationName(speaker.congregation)}</p>
                 <div className="flex items-center justify-center gap-2 mt-2">
                   <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${speaker.status === 'Actif' ? 'bg-green-100 dark:bg-green-500/15 text-green-600 dark:text-green-500 border-green-200 dark:border-green-500/20' : 'bg-gray-100 dark:bg-gray-500/15 text-gray-600 dark:text-gray-500'}`}>
                     {speaker.status}

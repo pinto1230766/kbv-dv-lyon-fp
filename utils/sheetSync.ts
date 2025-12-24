@@ -6,8 +6,25 @@ const API_KEY = (import.meta as any).env.VITE_GOOGLE_SHEETS_API_KEY;
 /**
  * Normalise une chaîne pour la recherche : minuscule, sans espaces superflus, sans accents.
  */
-export const normalizeString = (str: string) => 
+export const normalizeString = (str: string) =>
   str ? str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+
+/**
+ * Raccourcit les noms de congrégation spécifiques pour un affichage plus court.
+ */
+export const shortenCongregationName = (congregation: string): string => {
+  if (!congregation) return congregation;
+
+  const normalized = congregation.toLowerCase().trim();
+
+  // Si c'est "asenbleia" ou "assembleia" (avec ou sans accents), afficher "AS"
+  if (normalized.includes('asenbleia') || normalized.includes('assembleia') ||
+      normalized.includes('asenbléia') || normalized.includes('assembléia')) {
+    return 'AS';
+  }
+
+  return congregation;
+};
 
 const cleanValue = (val: string) => {
     if (!val) return '';

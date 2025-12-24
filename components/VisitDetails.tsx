@@ -1,6 +1,7 @@
 import React from 'react';
 import { Visit, TabType, NavigationProps } from '../types';
 import { useData } from '../DataContext';
+import { shortenCongregationName } from '../utils/sheetSync';
 
 interface VisitDetailsProps {
   visit: Visit;
@@ -57,7 +58,7 @@ const VisitDetails: React.FC<VisitDetailsProps> = ({ visit, onBack, onEdit, onNa
                   <div>
                       <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest block mb-1">Informations Orateur</label>
                       <p className="text-2xl font-black leading-tight">{visit.speakerName}</p>
-                      <p className="text-lg font-medium text-gray-600">{visit.congregation}</p>
+                      <p className="text-lg font-medium text-gray-600">{shortenCongregationName(visit.congregation)}</p>
                   </div>
                   <div>
                       <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest block mb-1">Date & Heure</label>
@@ -138,7 +139,7 @@ const VisitDetails: React.FC<VisitDetailsProps> = ({ visit, onBack, onEdit, onNa
         </div>
 
         <div className="space-y-4">
-            <InfoCard icon="record_voice_over" label="Orateur" title={visit.speakerName} sub={visit.congregation} onClick={() => visit.speakerId && onNavigate('speakers', { speakerId: visit.speakerId })} />
+            <InfoCard icon="record_voice_over" label="Orateur" title={visit.speakerName} sub={shortenCongregationName(visit.congregation)} onClick={() => visit.speakerId && onNavigate('speakers', { speakerId: visit.speakerId })} />
             <InfoCard icon="home" label="Hébergement" title={visit.hostName || 'Non assigné'} sub={visit.hostId ? 'Détails de l\'hôte' : 'Assigner un hôte'} onClick={() => visit.hostId ? onNavigate('hosts', { hostId: visit.hostId }) : onEdit(visit)} />
             
             <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
