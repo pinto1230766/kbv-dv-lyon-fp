@@ -299,8 +299,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
               Gestion des données & Sauvegardes
             </button>
 
-
-
             <div className="border-t border-gray-200 dark:border-white/10 pt-4 mt-6">
                 <button
                 onClick={handleResetData}
