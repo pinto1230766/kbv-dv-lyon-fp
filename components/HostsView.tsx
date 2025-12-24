@@ -125,13 +125,22 @@ const HostsView: React.FC<HostsViewProps> = ({ onNavigate, initialProps, onActio
                 filteredHosts.length === 0 ? <p className="py-20 text-center opacity-50">Aucun hôte trouvé.</p> : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {filteredHosts.map(h => (
-                            <div key={h.id} onClick={() => setSelectedHost(h)} className="bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-transparent hover:border-primary/50 transition-all cursor-pointer flex items-center gap-4 active:scale-95 group">
+                            <div key={h.id} className="bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-transparent hover:border-primary/50 transition-all cursor-pointer flex items-center gap-4 active:scale-95 group relative">
                                 <div className="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg group-hover:bg-primary group-hover:text-white transition-colors">{h.initials || h.name.charAt(0)}</div>
                                 <div className="flex-1 min-w-0">
                                     <p className="font-bold text-gray-900 dark:text-white truncate">{h.name}</p>
                                     <p className="text-xs text-gray-500 truncate font-medium">{h.location}</p>
                                 </div>
-                                <span className={`w-2 h-2 rounded-full ${h.available ? 'bg-green-500' : 'bg-red-500 shadow-sm shadow-red-500/50'}`}></span>
+                                <div className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${h.available ? 'bg-green-500' : 'bg-red-500 shadow-sm shadow-red-500/50'}`}></span>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setEditingHost(h); }}
+                                      className="opacity-0 group-hover:opacity-100 p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-all"
+                                      title="Modifier"
+                                    >
+                                      <span className="material-symbols-outlined text-lg text-gray-500">edit</span>
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>

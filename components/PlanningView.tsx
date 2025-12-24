@@ -79,9 +79,8 @@ const PlanningView: React.FC<PlanningViewProps> = ({ onNavigate, initialProps, o
 
       <main className="flex-1 p-4 grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
         {filteredVisits.map(v => (
-          <div 
-            key={v.id} 
-            onClick={() => setSelectedVisitId(v.id)}
+          <div
+            key={v.id}
             className="bg-white dark:bg-surface-dark p-5 rounded-3xl border border-gray-200 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-primary/30 transition-all cursor-pointer group relative overflow-hidden"
           >
             <div className="flex justify-between items-start mb-4">
@@ -89,9 +88,18 @@ const PlanningView: React.FC<PlanningViewProps> = ({ onNavigate, initialProps, o
                   <p className="text-[10px] font-black text-primary uppercase tracking-widest">{v.dayName} {v.date.split('-').reverse().slice(0,2).join('/')}</p>
                   <h4 className="text-xl font-bold text-gray-900 dark:text-white mt-1 group-hover:text-primary transition-colors">{v.speakerName}</h4>
                </div>
-               <span className={`px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase ${
-                 v.status === 'Confirmed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-               }`}>{v.status}</span>
+               <div className="flex items-center gap-2">
+                 <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                   v.status === 'Confirmed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                 }`}>{v.status}</span>
+                 <button
+                   onClick={(e) => { e.stopPropagation(); setEditingVisit(v); }}
+                   className="opacity-0 group-hover:opacity-100 p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-all"
+                   title="Modifier"
+                 >
+                   <span className="material-symbols-outlined text-lg text-gray-500">edit</span>
+                 </button>
+               </div>
             </div>
 
             <div className="flex items-center gap-4 py-3 border-t border-gray-50 dark:border-white/5">
