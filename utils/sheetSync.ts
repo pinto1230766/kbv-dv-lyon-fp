@@ -17,6 +17,23 @@ export const shortenCongregationName = (congregation: string): string => {
 
   const normalized = congregation.toLowerCase().trim();
 
+  // Raccourcis pour les congrégations KBV
+  if (normalized.includes('kbv')) {
+    // Extraire le nom de la ville avant "KBV"
+    const cityName = congregation.replace(/\s*kbv\s*$/i, '').trim();
+    return cityName;
+  }
+
+  // Pattern pour les assemblées : CODE + espace + nom complet
+  // Exemple: "AKRDB Asenbleia Ku Reprizentanti Di Betel" -> "AKRDB"
+  const assemblyPattern = /^([A-Z]{4,}) (.+)$/;
+  if (assemblyPattern.test(congregation)) {
+    const match = congregation.match(assemblyPattern);
+    if (match && match[1]) {
+      return match[1]; // Retourne le code (ex: AKRDB, CCOSDC, etc.)
+    }
+  }
+
   // Si c'est "asenbleia" ou "assembleia" (avec ou sans accents), afficher "AS"
   if (normalized.includes('asenbleia') || normalized.includes('assembleia') ||
       normalized.includes('asenbléia') || normalized.includes('assembléia')) {
@@ -70,7 +87,7 @@ const processRows = (rows: string[][], sheetName: string): { visits: Visit[], ne
     const speakerIdx = findIdx([/(orateur|orador|speaker|intervenant|publicateur|nom.*complet|nom)/i]);
     const themeIdx = findIdx([/(theme|thème|sujet|titre|title|discours|talk|tema|téma|assunto)/i]);
     const numIdx = findIdx([/(n°|no\.|num|numero|number)/i]);
-    const congIdx = findIdx([/(provenance|origine|origin|kongregason|assembleia|congregation|cong|kong|ass)/i]);
+    const congIdx = findIdx([/(provenance|origine|origin|kongregason|assembleia|asenbleia|congregation|cong|kong|ass|asenbl|congreg|congég)/i]);
     const timeIdx = findIdx([/(heure|time|hora|h)/i]);
     const phoneIdx = findIdx([/(tel|téléphone|phone|celular|mobile)/i]);
 
