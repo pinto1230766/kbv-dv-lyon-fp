@@ -293,7 +293,7 @@ const DataManagementView: React.FC<DataManagementViewProps> = ({ onBack }) => {
               </button>
               <button onClick={() => seedOfficialSpeakers()} className="flex flex-col items-center justify-center p-4 bg-white dark:bg-surface-dark rounded-2xl border border-gray-200 dark:border-white/5 group">
                  <span className="material-symbols-outlined text-2xl text-purple-500 mb-2">person_check</span>
-                 <span className="text-xs font-bold text-gray-900 dark:text-white">Réinitialiser</span>
+                 <span className="text-xs font-bold text-gray-900 dark:text-white">Orateurs Officiels</span>
               </button>
             </div>
           </div>
