@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../DataContext';
 import { Visit } from '../types';
 import { normalizeString } from '../utils/sheetSync';
+import { getShortTitle, getFullTitle, isAssembly } from '../utils/assemblyTitles';
 
 interface ArchivesViewProps {
   onBack: () => void;
@@ -58,7 +59,16 @@ const ArchivesView: React.FC<ArchivesViewProps> = ({ onBack }) => {
                 </div>
                 <div className="flex-1 min-w-0">
                    <h4 className="font-bold truncate">{v.speakerName}</h4>
-                   <p className="text-sm text-gray-500 truncate">{v.discoursTitle || `Discours #${v.discoursNumber}`}</p>
+                   <div className="flex items-center gap-2">
+                      {v.discoursTitle && isAssembly(v.discoursTitle) && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                          {getShortTitle(v.discoursTitle)}
+                        </span>
+                      )}
+                      <p className="text-sm text-gray-500 truncate flex-1">
+                        {v.discoursTitle ? getFullTitle(v.discoursTitle) : `Discours #${v.discoursNumber}`}
+                      </p>
+                   </div>
                 </div>
                 <button onClick={() => handleRestore(v)} className="size-10 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-primary"><span className="material-symbols-outlined">restore</span></button>
               </div>

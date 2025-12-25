@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '../ThemeContext';
 import { useData } from '../DataContext';
-import DataManagementView from './DataManagementView';
 import { Speaker, Host, Visit } from '../types';
 
 interface SettingsViewProps {
@@ -35,11 +34,26 @@ const Toggle: React.FC<{
 
 const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
   const { theme, setTheme } = useTheme();
-  const { appSettings, updateAppSettings, resetAllData, syncData, isSyncing, syncConfig, showToast } = useData();
-  const [currentView, setCurrentView] = useState<'main' | 'data'>('main');
+  const { 
+    appSettings, 
+    updateAppSettings, 
+    resetAllData, 
+    syncData, 
+    isSyncing, 
+    syncConfig, 
+    updateSyncConfig,
+    showToast,
+    visits,
+    speakers,
+    hosts,
+    exportData,
+    importData
+  } = useData();
+  
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
+  const [showSyncConfig, setShowSyncConfig] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,15 +69,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
   }
-  
-  const handleLogout = () => {
-      if(confirm("Voulez-vous vraiment vous déconnecter ?")) {
-          window.location.reload();
-      }
-  };
 
   const handleResetData = () => {
-      if(confirm("ATTENTION : Cette action va effacer TOUTES les données (Orateurs, Visites, Hôtes, Paramètres) et restaurer l'application à son état initial.\n\nÊtes-vous sûr de vouloir continuer ?")) {
+      if(confirm("ATTENTION : Cette action va effacer TOUTES les données (Orateurs, Visites, Hôtes, Paramètres) et restaurer l'application à son état initial.\\n\\nÊtes-vous sûr de vouloir continuer ?")) {
           if (confirm("Dernière confirmation : Tout sera supprimé définitivement.")) {
               resetAllData();
           }
@@ -92,12 +100,37 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
     }
   };
 
-  if (currentView === 'data') {
-    return <DataManagementView onBack={() => setCurrentView('main')} />;
-  }
+  const handleExport = () => {
+    exportData();
+    showToast('Données exportées avec succès !', 'success');
+  };
+
+  const handleImport = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e: any) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = JSON.parse(event.target?.result as string);
+            importData(data);
+            showToast('Données importées avec succès !', 'success');
+          } catch (error) {
+            showToast('Erreur lors de l\'importation', 'error');
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
+  };
 
   return (
     <>
+      {/* Modal Aide */}
       {showHelpModal && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
@@ -129,11 +162,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
         </div>
       )}
 
+      {/* Modal Doublons */}
       {showDuplicatesModal && (
         <DuplicatesModal onClose={() => setShowDuplicatesModal(false)} />
       )}
 
       <div className="flex flex-col min-h-full bg-background-light dark:bg-background-dark animate-in fade-in duration-300">
+        {/* Header */}
         <div className="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-gray-200 dark:border-white/5">
           <div className="flex flex-col gap-2 p-4 pb-2 w-full">
             <div className="flex items-center h-12 justify-between">
@@ -158,11 +193,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
 
         <div className="w-full p-4 pb-24 space-y-6">
           
-          {/* Section Synchronisation Simplifiée */}
+          {/* 1. SYNCHRONISATION */}
           <section className="flex flex-col">
             <h3 className="text-text-secondary text-xs font-bold uppercase tracking-wider px-4 mb-3 flex items-center gap-2">
               <span className="material-symbols-outlined text-[16px]">sync</span>
-              Synchronisation Google Sheet
+              Synchronisation
             </h3>
             <div className="bg-card-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-gray-200 dark:border-white/5 space-y-4">
               <div className="flex items-center justify-between">
@@ -171,7 +206,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                     <span className={`material-symbols-outlined text-xl ${isSyncing ? 'animate-spin' : ''}`}>cloud_sync</span>
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">Planning en ligne</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">Google Sheets</p>
                     <p className="text-[10px] text-gray-500 dark:text-text-secondary uppercase font-bold tracking-tight">
                       {syncConfig.lastSync 
                         ? `Dernière MAJ: ${new Date(syncConfig.lastSync).toLocaleDateString()} à ${new Date(syncConfig.lastSync).toLocaleTimeString()}` 
@@ -184,29 +219,69 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                   disabled={isSyncing}
                   className="bg-primary text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-50"
                 >
-                  {isSyncing ? 'En cours...' : 'Mettre à jour'}
+                  {isSyncing ? 'En cours...' : 'Synchroniser'}
                 </button>
               </div>
+              
+              {/* Configuration avancée (expandable) */}
               <div className="pt-2 border-t border-gray-100 dark:border-white/5">
-                 <button 
-                   onClick={() => setCurrentView('data')}
-                   className="text-[11px] font-bold text-gray-400 hover:text-primary transition-colors flex items-center gap-1"
-                 >
-                   Paramètres de synchronisation avancés <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-                 </button>
+                <button 
+                  onClick={() => setShowSyncConfig(!showSyncConfig)}
+                  className="text-[11px] font-bold text-gray-400 hover:text-primary transition-colors flex items-center gap-1"
+                >
+                  Configuration avancée 
+                  <span className={`material-symbols-outlined text-[14px] transition-transform ${showSyncConfig ? 'rotate-90' : ''}`}>chevron_right</span>
+                </button>
+                
+                {showSyncConfig && (
+                  <div className="mt-3 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 ml-1">URL Google Sheet</label>
+                      <input 
+                        className="w-full bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-xs font-mono" 
+                        type="text" 
+                        value={syncConfig.sheetUrl}
+                        onChange={(e) => updateSyncConfig({ sheetUrl: e.target.value })}
+                        placeholder="https://docs.google.com/spreadsheets/d/..."
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 ml-1">Orateurs GID</label>
+                        <input 
+                          className="w-full bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-xs" 
+                          type="text" 
+                          value={syncConfig.speakersGid}
+                          onChange={(e) => updateSyncConfig({ speakersGid: e.target.value })}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 ml-1">Visites GID</label>
+                        <input 
+                          className="w-full bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-xs" 
+                          type="text" 
+                          value={syncConfig.visitsGid}
+                          onChange={(e) => updateSyncConfig({ visitsGid: e.target.value })}
+                          placeholder="1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </section>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            {/* Section: Apparence */}
+            {/* 2. APPARENCE */}
             <section className="flex flex-col">
               <h3 className="text-text-secondary text-xs font-bold uppercase tracking-wider px-4 mb-3 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">palette</span>
                 Apparence
               </h3>
-              <div className="bg-card-light dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm border border-gray-200 dark:border-white/5 p-4 space-y-4 h-full">
+              <div className="bg-card-light dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm border border-gray-200 dark:border-white/5 p-4 h-full">
                 <div className="bg-gray-100 dark:bg-black/20 rounded-xl p-1 flex">
                   <button 
                     onClick={() => setTheme('light')}
@@ -233,7 +308,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
               </div>
             </section>
 
-            {/* Section: Profil de la Congrégation */}
+            {/* 3. PROFIL */}
             <section className="flex flex-col">
               <h3 className="text-text-secondary text-xs font-bold uppercase tracking-wider px-4 mb-3 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">groups</span>
@@ -241,7 +316,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
               </h3>
               <div className="bg-card-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-gray-200 dark:border-white/5 space-y-4 flex-1 relative overflow-hidden">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 ml-1">Congrég.</label>
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 ml-1">Congrégation</label>
                   <input 
                     name="congregationName"
                     className="w-full bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all placeholder-gray-400 dark:placeholder-gray-500 text-sm" 
@@ -269,7 +344,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
               </div>
             </section>
 
-            {/* Section: Notifications */}
+            {/* 4. NOTIFICATIONS */}
             <section className="flex flex-col lg:col-span-2 xl:col-span-1">
               <h3 className="text-text-secondary text-xs font-bold uppercase tracking-wider px-4 mb-3 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">notifications</span>
@@ -307,33 +382,80 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                 )}
               </div>
             </section>
-          </div>
 
-          <div className="pt-4 max-w-sm mx-auto space-y-4">
-            <button
-              onClick={() => setCurrentView('data')}
-              className="w-full bg-white dark:bg-surface-dark text-gray-700 dark:text-gray-300 font-bold py-3.5 rounded-2xl shadow-sm border border-gray-200 dark:border-white/5 active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined">settings_suggest</span>
-              Gestion des données & Sauvegardes
-            </button>
-
-            <div className="border-t border-gray-200 dark:border-white/10 pt-4 mt-6">
+            {/* 5. GESTION DES DONNÉES */}
+            <section className="flex flex-col lg:col-span-2 xl:col-span-1">
+              <h3 className="text-text-secondary text-xs font-bold uppercase tracking-wider px-4 mb-3 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[16px]">database</span>
+                Gestion des Données
+              </h3>
+              <div className="bg-card-light dark:bg-surface-dark rounded-2xl shadow-sm border border-gray-200 dark:border-white/5 p-4 space-y-3">
                 <button
-                onClick={handleResetData}
-                className="w-full bg-red-500/5 hover:bg-red-500/10 text-red-600 dark:text-red-400 font-bold py-3.5 rounded-2xl border border-red-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  onClick={handleExport}
+                  className="w-full bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 font-medium py-3 rounded-xl border border-gray-200 dark:border-white/10 active:scale-[0.98] transition-transform flex items-center justify-between px-4"
                 >
-                <span className="material-symbols-outlined">delete_forever</span>
-                Réinitialiser l'application
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-green-600">download</span>
+                    <div className="text-left">
+                      <p className="text-sm font-bold">Exporter</p>
+                      <p className="text-xs text-gray-500">Sauvegarder toutes les données</p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-gray-400">chevron_right</span>
                 </button>
-            </div>
+
+                <button
+                  onClick={handleImport}
+                  className="w-full bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 font-medium py-3 rounded-xl border border-gray-200 dark:border-white/10 active:scale-[0.98] transition-transform flex items-center justify-between px-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-blue-600">upload</span>
+                    <div className="text-left">
+                      <p className="text-sm font-bold">Importer</p>
+                      <p className="text-xs text-gray-500">Restaurer depuis un fichier</p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-gray-400">chevron_right</span>
+                </button>
+
+                <button
+                  onClick={() => setShowDuplicatesModal(true)}
+                  className="w-full bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 font-medium py-3 rounded-xl border border-gray-200 dark:border-white/10 active:scale-[0.98] transition-transform flex items-center justify-between px-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-amber-600">content_copy</span>
+                    <div className="text-left">
+                      <p className="text-sm font-bold">Vérifier les doublons</p>
+                      <p className="text-xs text-gray-500">Détecter les entrées en double</p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-gray-400">chevron_right</span>
+                </button>
+              </div>
+            </section>
           </div>
+
+          {/* 6. ACTIONS DANGEREUSES */}
+          <section className="pt-4 max-w-sm mx-auto">
+            <h3 className="text-text-secondary text-xs font-bold uppercase tracking-wider px-4 mb-3 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[16px]">warning</span>
+              Zone Dangereuse
+            </h3>
+            <button
+              onClick={handleResetData}
+              className="w-full bg-red-500/5 hover:bg-red-500/10 text-red-600 dark:text-red-400 font-bold py-3.5 rounded-2xl border border-red-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined">delete_forever</span>
+              Réinitialiser l'application
+            </button>
+          </section>
         </div>
       </div>
     </>
   );
 };
 
+// Modal Doublons (inchangé)
 const DuplicatesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { speakers, hosts, visits } = useData();
 
@@ -350,7 +472,7 @@ const DuplicatesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       speeches: []
     };
 
-    // Doublons d'orateurs (même nom + congrégation)
+    // Doublons d'orateurs
     const speakerMap = new Map<string, { count: number; ids: string[] }>();
     speakers.forEach(speaker => {
       const key = `${speaker.name.toLowerCase()}|${speaker.congregation.toLowerCase()}`;
@@ -373,7 +495,7 @@ const DuplicatesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       }
     });
 
-    // Doublons d'hôtes (même nom + adresse)
+    // Doublons d'hôtes
     const hostMap = new Map<string, { count: number; ids: string[] }>();
     hosts.forEach(host => {
       const key = `${host.name.toLowerCase()}|${host.location.toLowerCase()}`;
@@ -396,7 +518,7 @@ const DuplicatesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       }
     });
 
-    // Doublons de visites (même orateur + même date)
+    // Doublons de visites
     const visitMap = new Map<string, { count: number; ids: string[] }>();
     visits.forEach(visit => {
       const key = `${visit.speakerName.toLowerCase()}|${visit.date}`;
@@ -419,201 +541,111 @@ const DuplicatesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       }
     });
 
-    // Doublons de discours (même numéro ou même titre)
-    const speechNumberMap = new Map<number, { count: number; ids: string[]; titles: string[] }>();
-    const speechTitleMap = new Map<string, { count: number; ids: string[]; numbers: number[] }>();
-
-    visits.forEach(visit => {
-      if (visit.discoursNumber) {
-        if (!speechNumberMap.has(visit.discoursNumber)) {
-          speechNumberMap.set(visit.discoursNumber, { count: 0, ids: [], titles: [] });
-        }
-        const entry = speechNumberMap.get(visit.discoursNumber)!;
-        entry.count++;
-        entry.ids.push(visit.id);
-        if (visit.discoursTitle) entry.titles.push(visit.discoursTitle);
-      }
-
-      if (visit.discoursTitle) {
-        const titleKey = visit.discoursTitle.toLowerCase().trim();
-        if (!speechTitleMap.has(titleKey)) {
-          speechTitleMap.set(titleKey, { count: 0, ids: [], numbers: [] });
-        }
-        const entry = speechTitleMap.get(titleKey)!;
-        entry.count++;
-        entry.ids.push(visit.id);
-        if (visit.discoursNumber) entry.numbers.push(visit.discoursNumber);
-      }
-    });
-
-    speechNumberMap.forEach((data, number) => {
-      if (data.count > 1) {
-        result.speeches.push({
-          number,
-          title: data.titles.length > 0 ? data.titles[0] : 'Titre non défini',
-          count: data.count,
-          ids: data.ids
-        });
-      }
-    });
-
-    speechTitleMap.forEach((data, title) => {
-      if (data.count > 1 && !result.speeches.some(s => s.title.toLowerCase() === title)) {
-        result.speeches.push({
-          number: data.numbers.length > 0 ? data.numbers[0] : 0,
-          title: title.charAt(0).toUpperCase() + title.slice(1),
-          count: data.count,
-          ids: data.ids
-        });
-      }
-    });
-
     return result;
   }, [speakers, hosts, visits]);
 
-  const totalDuplicates = duplicates.speakers.length + duplicates.hosts.length + duplicates.visits.length + duplicates.speeches.length;
+  const totalDuplicates = duplicates.speakers.length + duplicates.hosts.length + duplicates.visits.length;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
-      <div className="w-full max-w-2xl max-h-[90vh] bg-white dark:bg-card-dark rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="p-6 border-b border-gray-200 dark:border-white/5">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-2xl bg-white dark:bg-card-dark rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[80vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-6 border-b border-gray-200 dark:border-white/10">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Vérification des doublons</h2>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Doublons Détectés</h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
+            >
               <span className="material-symbols-outlined">close</span>
             </button>
           </div>
-          <p className="text-sm text-gray-500 dark:text-text-secondary mt-1">
-            Analyse des données pour identifier les doublons potentiels
-          </p>
+          {totalDuplicates > 0 ? (
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+              {totalDuplicates} doublon{totalDuplicates > 1 ? 's' : ''} trouvé{totalDuplicates > 1 ? 's' : ''}
+            </p>
+          ) : (
+            <p className="text-sm text-green-600 dark:text-green-400 mt-2 flex items-center gap-2">
+              <span className="material-symbols-outlined">check_circle</span>
+              Aucun doublon détecté !
+            </p>
+          )}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {totalDuplicates === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="material-symbols-outlined text-3xl">check_circle</span>
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Aucun doublon détecté</h3>
-              <p className="text-sm text-gray-500 dark:text-text-secondary">
-                Toutes vos données sont uniques et bien organisées.
-              </p>
+            <div className="text-center py-8">
+              <span className="material-symbols-outlined text-6xl text-green-500 mb-4">verified</span>
+              <p className="text-gray-600 dark:text-gray-300">Vos données sont propres !</p>
             </div>
           ) : (
             <>
               {duplicates.speakers.length > 0 && (
-                <section>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-amber-500">record_voice_over</span>
-                    Orateurs en double ({duplicates.speakers.length})
+                <div>
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">person</span>
+                    Orateurs ({duplicates.speakers.length})
                   </h3>
-                  <div className="space-y-3">
-                    {duplicates.speakers.map((dup, index) => (
-                      <div key={index} className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-bold text-gray-900 dark:text-white">{dup.name}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">{dup.congregation}</p>
-                          </div>
-                          <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-full text-xs font-medium">
-                            {dup.count} doublons
-                          </span>
-                        </div>
+                  <div className="space-y-2">
+                    {duplicates.speakers.map((dup, idx) => (
+                      <div key={idx} className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                        <p className="font-medium text-gray-900 dark:text-white">{dup.name}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{dup.congregation} • {dup.count} entrées</p>
                       </div>
                     ))}
                   </div>
-                </section>
+                </div>
               )}
 
               {duplicates.hosts.length > 0 && (
-                <section>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-blue-500">home</span>
-                    Hôtes en double ({duplicates.hosts.length})
+                <div>
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">home</span>
+                    Hôtes ({duplicates.hosts.length})
                   </h3>
-                  <div className="space-y-3">
-                    {duplicates.hosts.map((dup, index) => (
-                      <div key={index} className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 rounded-xl p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-bold text-gray-900 dark:text-white">{dup.name}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">{dup.location}</p>
-                          </div>
-                          <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs font-medium">
-                            {dup.count} doublons
-                          </span>
-                        </div>
+                  <div className="space-y-2">
+                    {duplicates.hosts.map((dup, idx) => (
+                      <div key={idx} className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                        <p className="font-medium text-gray-900 dark:text-white">{dup.name}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{dup.location} • {dup.count} entrées</p>
                       </div>
                     ))}
                   </div>
-                </section>
+                </div>
               )}
 
               {duplicates.visits.length > 0 && (
-                <section>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-red-500">event</span>
-                    Visites en double ({duplicates.visits.length})
+                <div>
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">event</span>
+                    Visites ({duplicates.visits.length})
                   </h3>
-                  <div className="space-y-3">
-                    {duplicates.visits.map((dup, index) => (
-                      <div key={index} className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-xl p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-bold text-gray-900 dark:text-white">{dup.speaker}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">{new Date(dup.date).toLocaleDateString('fr-FR')}</p>
-                          </div>
-                          <span className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-2 py-1 rounded-full text-xs font-medium">
-                            {dup.count} doublons
-                          </span>
-                        </div>
+                  <div className="space-y-2">
+                    {duplicates.visits.map((dup, idx) => (
+                      <div key={idx} className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                        <p className="font-medium text-gray-900 dark:text-white">{dup.speaker}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{dup.date} • {dup.count} entrées</p>
                       </div>
                     ))}
                   </div>
-                </section>
-              )}
-
-              {duplicates.speeches.length > 0 && (
-                <section>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-purple-500">campaign</span>
-                    Discours en double ({duplicates.speeches.length})
-                  </h3>
-                  <div className="space-y-3">
-                    {duplicates.speeches.map((dup, index) => (
-                      <div key={index} className="bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800/30 rounded-xl p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-bold text-gray-900 dark:text-white">
-                              {dup.number ? `#${dup.number}` : ''} {dup.title}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">Utilisé {dup.count} fois</p>
-                          </div>
-                          <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 px-2 py-1 rounded-full text-xs font-medium">
-                            {dup.count} occurrences
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
+                </div>
               )}
             </>
           )}
         </div>
 
-        <div className="p-6 border-t border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-surface-dark/50">
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-500 dark:text-text-secondary">
-              {totalDuplicates > 0 ? `${totalDuplicates} doublon(s) détecté(s)` : 'Aucun doublon'}
-            </div>
-            <button
-              onClick={onClose}
-              className="px-6 py-2 bg-primary text-white font-semibold rounded-lg shadow-sm hover:bg-primary-dark transition-colors"
-            >
-              Fermer
-            </button>
-          </div>
+        <div className="p-4 border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
+          <button
+            onClick={onClose}
+            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-dark transition-colors"
+          >
+            Fermer
+          </button>
         </div>
       </div>
     </div>

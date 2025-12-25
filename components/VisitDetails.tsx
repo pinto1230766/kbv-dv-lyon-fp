@@ -2,6 +2,7 @@ import React from 'react';
 import { Visit, TabType, NavigationProps } from '../types';
 import { useData } from '../DataContext';
 import { shortenCongregationName } from '../utils/sheetSync';
+import { getFullTitle } from '../utils/assemblyTitles';
 
 interface VisitDetailsProps {
   visit: Visit;
@@ -69,7 +70,7 @@ const VisitDetails: React.FC<VisitDetailsProps> = ({ visit, onBack, onEdit, onNa
               <div className="space-y-6">
                   <div>
                       <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest block mb-1">Thème du discours Public</label>
-                      <p className="text-xl font-bold italic leading-tight">"{visit.discoursTitle || 'À définir'}"</p>
+                      <p className="text-xl font-bold italic leading-tight">"{visit.discoursTitle ? getFullTitle(visit.discoursTitle) : 'À définir'}"</p>
                       {visit.discoursNumber && <p className="text-lg font-black text-primary mt-1">Sujet n°{visit.discoursNumber}</p>}
                   </div>
                   <div>
@@ -146,7 +147,7 @@ const VisitDetails: React.FC<VisitDetailsProps> = ({ visit, onBack, onEdit, onNa
                 <p className="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-widest">Discours</p>
                 <h4 className="font-bold text-xl dark:text-white leading-tight">
                     {visit.discoursNumber && <span className="text-primary mr-2">#{visit.discoursNumber}</span>}
-                    {visit.discoursTitle || 'Titre non défini'}
+                    {visit.discoursTitle ? getFullTitle(visit.discoursTitle) : 'Titre non défini'}
                 </h4>
             </div>
             

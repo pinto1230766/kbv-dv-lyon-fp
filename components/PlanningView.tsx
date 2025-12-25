@@ -5,6 +5,7 @@ import AddVisitView from './AddVisitView';
 import { useData } from '../DataContext';
 import { Visit, TabType, NavigationProps, Speaker, Host } from '../types';
 import { normalizeString } from '../utils/sheetSync';
+import { getShortTitle, getFullTitle, isAssembly } from '../utils/assemblyTitles';
 
 interface PlanningViewProps {
   onNavigate: (tab: TabType, props?: NavigationProps) => void;
@@ -19,6 +20,10 @@ const PlanningView: React.FC<PlanningViewProps> = ({ onNavigate, initialProps, o
   const [isAddingVisit, setIsAddingVisit] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Confirmed' | 'Pending' | 'Cancelled'>('All');
+  const [dateRange, setDateRange] = useState<'all' | 'month' | 'quarter' | 'year'>('all');
+  const [selectedCongregation, setSelectedCongregation] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'speaker' | 'status'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     if (initialProps?.action === 'add') {
@@ -31,15 +36,72 @@ const PlanningView: React.FC<PlanningViewProps> = ({ onNavigate, initialProps, o
     }
   }, [initialProps, onActionHandled]);
 
+  // Obtenir la liste unique des congrégations
+  const congregations = useMemo(() => {
+    const unique = new Set(visits.map(v => v.congregation));
+    return Array.from(unique).sort();
+  }, [visits]);
+
   const filteredVisits = useMemo(() => {
     const term = normalizeString(searchTerm);
-    return (visits || []).filter(v => {
-      if (statusFilter !== 'All' && v.status !== statusFilter) return false;
-      return term === '' || 
-        normalizeString(v.speakerName).includes(term) || 
-        normalizeString(v.congregation).includes(term);
-    }).sort((a, b) => a.date.localeCompare(b.date));
-  }, [visits, searchTerm, statusFilter]);
+    const today = new Date();
+    
+    return (visits || [])
+      .filter(v => {
+        // Filtre par statut
+        if (statusFilter !== 'All' && v.status !== statusFilter) return false;
+        
+        // Filtre par recherche
+        if (term !== '' && 
+            !normalizeString(v.speakerName).includes(term) && 
+            !normalizeString(v.congregation).includes(term)) {
+          return false;
+        }
+        
+        // Filtre par congrégation
+        if (selectedCongregation !== 'all' && v.congregation !== selectedCongregation) {
+          return false;
+        }
+        
+        // Filtre par plage de dates
+        const visitDate = new Date(v.date);
+        switch (dateRange) {
+          case 'month':
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            if (visitDate < monthStart || visitDate > monthEnd) return false;
+            break;
+          case 'quarter':
+            const quarter = Math.floor(today.getMonth() / 3);
+            const quarterStart = new Date(today.getFullYear(), quarter * 3, 1);
+            const quarterEnd = new Date(today.getFullYear(), quarter * 3 + 3, 0);
+            if (visitDate < quarterStart || visitDate > quarterEnd) return false;
+            break;
+          case 'year':
+            if (visitDate.getFullYear() !== today.getFullYear()) return false;
+            break;
+        }
+        
+        return true;
+      })
+      .sort((a, b) => {
+        let comparison = 0;
+        
+        switch (sortBy) {
+          case 'date':
+            comparison = a.date.localeCompare(b.date);
+            break;
+          case 'speaker':
+            comparison = a.speakerName.localeCompare(b.speakerName);
+            break;
+          case 'status':
+            comparison = a.status.localeCompare(b.status);
+            break;
+        }
+        
+        return sortOrder === 'asc' ? comparison : -comparison;
+      });
+  }, [visits, searchTerm, statusFilter, selectedCongregation, dateRange, sortBy, sortOrder]);
 
   const selectedVisit = visits.find(v => v.id === selectedVisitId) || null;
 
@@ -74,6 +136,60 @@ const PlanningView: React.FC<PlanningViewProps> = ({ onNavigate, initialProps, o
                     </button>
                 ))}
             </div>
+        </div>
+        
+        {/* Filtres avancés */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+          {/* Filtre par période */}
+          <select
+            value={dateRange}
+            onChange={e => setDateRange(e.target.value as any)}
+            className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-white/5 border-none text-xs font-bold outline-none cursor-pointer"
+          >
+            <option value="all">Toutes les dates</option>
+            <option value="month">Ce mois</option>
+            <option value="quarter">Ce trimestre</option>
+            <option value="year">Cette année</option>
+          </select>
+
+          {/* Filtre par congrégation */}
+          <select
+            value={selectedCongregation}
+            onChange={e => setSelectedCongregation(e.target.value)}
+            className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-white/5 border-none text-xs font-bold outline-none cursor-pointer"
+          >
+            <option value="all">Toutes les congrégations</option>
+            {congregations.map(cong => (
+              <option key={cong} value={cong}>{cong}</option>
+            ))}
+          </select>
+
+          {/* Tri */}
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value as any)}
+            className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-white/5 border-none text-xs font-bold outline-none cursor-pointer"
+          >
+            <option value="date">Trier par date</option>
+            <option value="speaker">Trier par orateur</option>
+            <option value="status">Trier par statut</option>
+          </select>
+
+          {/* Ordre */}
+          <button
+            onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+            className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors flex items-center gap-1"
+            title={sortOrder === 'asc' ? 'Ordre croissant' : 'Ordre décroissant'}
+          >
+            <span className="material-symbols-outlined text-sm">
+              {sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'}
+            </span>
+          </button>
+
+          {/* Compteur de résultats */}
+          <div className="px-3 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold flex items-center">
+            {filteredVisits.length} visite{filteredVisits.length > 1 ? 's' : ''}
+          </div>
         </div>
       </header>
 
@@ -129,8 +245,15 @@ const PlanningView: React.FC<PlanningViewProps> = ({ onNavigate, initialProps, o
                 </div>
             </div>
             
-            <div className="mt-2 text-xs text-gray-500 italic truncate opacity-70 group-hover:opacity-100 transition-opacity">
-                "{v.discoursTitle || 'Thème à venir...'}"
+            <div className="mt-2 text-xs text-gray-500 italic flex items-center gap-2 group-hover:opacity-100 transition-opacity">
+                {v.discoursTitle && isAssembly(v.discoursTitle) && (
+                  <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary/10 text-primary text-[8px] font-black not-italic border border-primary/20 shrink-0">
+                    {getShortTitle(v.discoursTitle)}
+                  </span>
+                )}
+                <span className="truncate flex-1">
+                  "{v.discoursTitle ? getFullTitle(v.discoursTitle) : 'Thème à venir...'}"
+                </span>
             </div>
           </div>
         ))}

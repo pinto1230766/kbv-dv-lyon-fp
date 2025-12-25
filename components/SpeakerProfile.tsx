@@ -4,6 +4,7 @@ import { useData } from '../DataContext';
 import { Speaker, Visit, TabType, NavigationProps } from '../types';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, Cell } from 'recharts';
 import { shortenCongregationName } from '../utils/sheetSync';
+import { getShortTitle, getFullTitle, isAssembly } from '../utils/assemblyTitles';
 
 interface SpeakerProfileProps {
   speaker: Speaker;
@@ -150,7 +151,11 @@ const SpeakerProfile: React.FC<SpeakerProfileProps> = ({ speaker, onBack, onEdit
                                 <span className="text-[10px] uppercase text-text-secondary">{visit.month}</span>
                              </div>
                              <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-bold truncate">{visit.discoursTitle || `Discours #${visit.discoursNumber}`}</h4>
+                                <h4 className="text-sm font-bold truncate">
+                                  {visit.discoursTitle 
+                                    ? (isAssembly(visit.discoursTitle) ? getFullTitle(visit.discoursTitle) : visit.discoursTitle)
+                                    : `Discours #${visit.discoursNumber}`}
+                                </h4>
                                 <p className="text-xs text-text-secondary">{visit.congregation}</p>
                              </div>
                           </div>
@@ -185,7 +190,18 @@ const SpeakerProfile: React.FC<SpeakerProfileProps> = ({ speaker, onBack, onEdit
                     {pastVisits.map(v => (
                         <div key={v.id} onClick={() => handleVisitClick(v.id)} className="bg-white dark:bg-surface-dark p-4 rounded-xl border border-gray-200 dark:border-white/5 cursor-pointer">
                             <span className="text-[10px] font-bold text-gray-400">{v.date}</span>
-                            <h4 className="font-bold text-sm truncate">{v.discoursTitle || `Discours #${v.discoursNumber}`}</h4>
+                            <div className="flex items-center gap-2">
+                              {v.discoursTitle && isAssembly(v.discoursTitle) && (
+                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                  {getShortTitle(v.discoursTitle)}
+                                </span>
+                              )}
+                              <h4 className="font-bold text-sm truncate flex-1">
+                                {v.discoursTitle 
+                                  ? (isAssembly(v.discoursTitle) ? getFullTitle(v.discoursTitle) : v.discoursTitle)
+                                  : `Discours #${v.discoursNumber}`}
+                              </h4>
+                            </div>
                             <p className="text-xs text-text-secondary">{v.congregation}</p>
                         </div>
                     ))}
@@ -197,7 +213,18 @@ const SpeakerProfile: React.FC<SpeakerProfileProps> = ({ speaker, onBack, onEdit
                     {futureVisits.map(v => (
                         <div key={v.id} onClick={() => handleVisitClick(v.id)} className="bg-primary/5 border border-primary/20 p-4 rounded-xl cursor-pointer">
                             <span className="text-[10px] font-bold text-primary">{v.date}</span>
-                            <h4 className="font-bold text-sm truncate">{v.discoursTitle || `Discours #${v.discoursNumber}`}</h4>
+                            <div className="flex items-center gap-2">
+                              {v.discoursTitle && isAssembly(v.discoursTitle) && (
+                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary text-white">
+                                  {getShortTitle(v.discoursTitle)}
+                                </span>
+                              )}
+                              <h4 className="font-bold text-sm truncate flex-1">
+                                {v.discoursTitle 
+                                  ? (isAssembly(v.discoursTitle) ? getFullTitle(v.discoursTitle) : v.discoursTitle)
+                                  : `Discours #${v.discoursNumber}`}
+                              </h4>
+                            </div>
                             <p className="text-xs text-text-secondary">{v.congregation}</p>
                         </div>
                     ))}

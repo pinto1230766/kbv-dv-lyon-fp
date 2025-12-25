@@ -1,137 +1,177 @@
-// Gestionnaire de notifications push pour PWA
+import { LocalNotifications, ScheduleOptions } from '@capacitor/local-notifications';
+import type { Visit } from '../types';
+
+// Gestionnaire de notifications natives pour Android via Capacitor
 export class NotificationManager {
-  private serviceWorkerRegistration: ServiceWorkerRegistration | null = null;
+  private hasPermission: boolean = false;
 
   constructor() {
     this.initialize();
   }
 
   private async initialize() {
-    if ('serviceWorker' in navigator && 'Notification' in window) {
-      try {
-        // Enregistrer le Service Worker
-        this.serviceWorkerRegistration = await navigator.serviceWorker.register('/sw.js');
-        console.log('Service Worker enregistré:', this.serviceWorkerRegistration);
-      } catch (error) {
-        console.error('Erreur enregistrement Service Worker:', error);
+    try {
+      // Vérifier et demander les permissions
+      const permission = await LocalNotifications.checkPermissions();
+      
+      if (permission.display === 'granted') {
+        this.hasPermission = true;
+        console.log('✅ Permissions notifications accordées');
+      } else {
+        console.log('⚠️ Permissions notifications non accordées');
       }
-    } else {
-      console.warn('Notifications non supportées sur ce navigateur');
+
+      // Créer le canal de notification pour Android
+      await this.createNotificationChannel();
+    } catch (error) {
+      console.error('❌ Erreur initialisation notifications:', error);
+    }
+  }
+
+  // Créer un canal de notification (requis pour Android 8+)
+  private async createNotificationChannel() {
+    try {
+      await LocalNotifications.createChannel({
+        id: 'visits',
+        name: 'Rappels de visites',
+        description: 'Notifications pour les visites d\'orateurs',
+        importance: 4, // HIGH
+        visibility: 1, // PUBLIC
+        sound: 'default',
+        vibration: true,
+        lights: true,
+        lightColor: '#e64c19'
+      });
+      console.log('✅ Canal de notification créé');
+    } catch (error) {
+      console.error('❌ Erreur création canal:', error);
     }
   }
 
   // Demander la permission de notifications
-  async requestPermission(): Promise<NotificationPermission> {
-    if (!('Notification' in window)) {
-      throw new Error('Notifications non supportées');
+  async requestPermission(): Promise<boolean> {
+    try {
+      const permission = await LocalNotifications.requestPermissions();
+      this.hasPermission = permission.display === 'granted';
+      
+      if (this.hasPermission) {
+        console.log('✅ Permission accordée');
+        await this.createNotificationChannel();
+      } else {
+        console.log('❌ Permission refusée');
+      }
+      
+      return this.hasPermission;
+    } catch (error) {
+      console.error('❌ Erreur demande permission:', error);
+      return false;
     }
-
-    const permission = await Notification.requestPermission();
-    console.log('Permission de notification:', permission);
-    return permission;
   }
 
   // Vérifier si les notifications sont autorisées
-  isPermissionGranted(): boolean {
-    return Notification.permission === 'granted';
+  async isPermissionGranted(): Promise<boolean> {
+    try {
+      const permission = await LocalNotifications.checkPermissions();
+      this.hasPermission = permission.display === 'granted';
+      return this.hasPermission;
+    } catch (error) {
+      console.error('❌ Erreur vérification permission:', error);
+      return false;
+    }
   }
 
   // Programmer une notification pour une visite
-  async scheduleVisitNotification(visit: any, daysBefore: number = 1) {
-    if (!this.isPermissionGranted() || !this.serviceWorkerRegistration) {
-      console.warn('Notifications non autorisées ou Service Worker non disponible');
+  async scheduleVisitNotification(visit: Visit, daysBefore: number = 1): Promise<void> {
+    const hasPermission = await this.isPermissionGranted();
+    
+    if (!hasPermission) {
+      console.warn('⚠️ Notifications non autorisées');
       return;
     }
-
-    const visitDate = new Date(visit.date);
-    const notificationDate = new Date(visitDate);
-    notificationDate.setDate(visitDate.getDate() - daysBefore);
-
-    // Ne programmer que si la date est dans le futur
-    if (notificationDate <= new Date()) {
-      return;
-    }
-
-    const delay = notificationDate.getTime() - Date.now();
-
-    // Pour une vraie implémentation, on utiliserait une API comme Background Sync
-    // ou un système de planification côté serveur. Ici on utilise setTimeout pour la démo.
-    setTimeout(() => {
-      this.showVisitNotification(visit, daysBefore);
-    }, Math.min(delay, 10000)); // Limite pour la démo (10 secondes max)
-
-    console.log(`Notification programmée pour ${notificationDate.toLocaleString()} (${daysBefore} jour(s) avant)`);
-  }
-
-  // Afficher une notification de visite
-  async showVisitNotification(visit: any, daysBefore: number) {
-    if (!this.isPermissionGranted() || !this.serviceWorkerRegistration) {
-      return;
-    }
-
-    let title = 'Rappel de visite';
-    let body = '';
-
-    if (daysBefore === 0) {
-      title = `Visite aujourd'hui : ${visit.speakerName}`;
-      body = `À ${visit.time} - ${visit.congregation}`;
-    } else if (daysBefore === 1) {
-      title = `Visite demain : ${visit.speakerName}`;
-      body = `À ${visit.time} - ${visit.congregation}`;
-    } else {
-      title = `Visite dans ${daysBefore} jours : ${visit.speakerName}`;
-      body = `${new Date(visit.date).toLocaleDateString('fr-FR')} à ${visit.time}`;
-    }
-
-    const notificationData = {
-      title,
-      body,
-      icon: '/icon-192x192.png',
-      badge: '/icon-192x192.png',
-      vibrate: [200, 100, 200],
-      data: {
-        visitId: visit.id,
-        action: 'view_visit'
-      },
-      tag: `visit-${visit.id}-${daysBefore}`,
-      requireInteraction: false
-    };
 
     try {
-      // Utiliser l'API Push si disponible, sinon fallback sur showNotification direct
-      if ('pushManager' in this.serviceWorkerRegistration) {
-        // Pour une vraie implémentation PWA, on utiliserait pushManager.subscribe()
-        // Ici on utilise directement showNotification pour la démo
-        await this.serviceWorkerRegistration.showNotification(title, {
-          body: notificationData.body,
-          icon: notificationData.icon,
-          badge: notificationData.badge,
-          data: notificationData.data,
-          tag: notificationData.tag,
-          requireInteraction: notificationData.requireInteraction
-        } as NotificationOptions);
+      const visitDate = new Date(visit.date + 'T' + (visit.time || '14:30'));
+      const notificationDate = new Date(visitDate);
+      notificationDate.setDate(visitDate.getDate() - daysBefore);
+      notificationDate.setHours(9, 0, 0, 0); // 9h le matin
+
+      // Ne programmer que si la date est dans le futur
+      if (notificationDate <= new Date()) {
+        console.log(`⏭️ Date passée, notification ignorée`);
+        return;
       }
+
+      // Créer le titre et le corps de la notification
+      let title = 'Rappel de visite';
+      let body = '';
+
+      if (daysBefore === 0) {
+        title = `🔔 Visite aujourd'hui !`;
+        body = `${visit.speakerName} à ${visit.time}\n${visit.congregation}`;
+      } else if (daysBefore === 1) {
+        title = `📅 Visite demain`;
+        body = `${visit.speakerName} à ${visit.time}\n${visit.congregation}`;
+      } else {
+        title = `📆 Visite dans ${daysBefore} jours`;
+        body = `${visit.speakerName} le ${new Date(visit.date).toLocaleDateString('fr-FR')}\n${visit.congregation}`;
+      }
+
+      // ID unique pour la notification
+      const notificationId = parseInt(`${visit.id.replace(/\D/g, '').substring(0, 8)}${daysBefore}`, 10);
+
+      const scheduleOptions: ScheduleOptions = {
+        notifications: [
+          {
+            id: notificationId,
+            title: title,
+            body: body,
+            schedule: {
+              at: notificationDate
+            },
+            sound: 'default',
+            channelId: 'visits',
+            extra: {
+              visitId: visit.id,
+              daysBefore: daysBefore
+            },
+            smallIcon: 'ic_stat_icon_config_sample',
+            iconColor: '#e64c19'
+          }
+        ]
+      };
+
+      await LocalNotifications.schedule(scheduleOptions);
+      console.log(`✅ Notification programmée pour ${notificationDate.toLocaleString()} (ID: ${notificationId})`);
     } catch (error) {
-      console.error('Erreur affichage notification:', error);
+      console.error('❌ Erreur programmation notification:', error);
     }
   }
 
   // Programmer des notifications pour toutes les visites à venir
-  async scheduleAllUpcomingVisits(visits: any[]) {
-    if (!this.isPermissionGranted()) {
-      console.log('Notifications non autorisées - pas de programmation');
+  async scheduleAllUpcomingVisits(visits: Visit[]): Promise<void> {
+    const hasPermission = await this.isPermissionGranted();
+    
+    if (!hasPermission) {
+      console.log('⚠️ Notifications non autorisées - pas de programmation');
       return;
     }
 
+    // Annuler toutes les notifications existantes d'abord
+    await this.cancelAllNotifications();
+
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const futureVisits = visits.filter(visit => {
       const visitDate = new Date(visit.date);
-      return visitDate > today && visit.status !== 'Cancelled';
+      return visitDate >= today && visit.status !== 'Cancelled';
     });
 
-    console.log(`Programmation de ${futureVisits.length} notifications pour visites futures`);
+    console.log(`📅 Programmation de notifications pour ${futureVisits.length} visites futures`);
 
     for (const visit of futureVisits) {
+      // Notification 7 jours avant
+      await this.scheduleVisitNotification(visit, 7);
       // Notification 2 jours avant
       await this.scheduleVisitNotification(visit, 2);
       // Notification 1 jour avant
@@ -139,38 +179,90 @@ export class NotificationManager {
       // Notification le jour même
       await this.scheduleVisitNotification(visit, 0);
     }
+
+    console.log(`✅ Notifications programmées avec succès`);
   }
 
   // Annuler toutes les notifications programmées
-  async cancelAllNotifications() {
-    if (!this.serviceWorkerRegistration) return;
-
-    const notifications = await this.serviceWorkerRegistration.getNotifications();
-    for (const notification of notifications) {
-      notification.close();
+  async cancelAllNotifications(): Promise<void> {
+    try {
+      const pending = await LocalNotifications.getPending();
+      
+      if (pending.notifications.length > 0) {
+        await LocalNotifications.cancel(pending);
+        console.log(`🗑️ ${pending.notifications.length} notifications annulées`);
+      }
+    } catch (error) {
+      console.error('❌ Erreur annulation notifications:', error);
     }
+  }
 
-    console.log('Toutes les notifications annulées');
+  // Annuler les notifications pour une visite spécifique
+  async cancelVisitNotifications(visitId: string): Promise<void> {
+    try {
+      const pending = await LocalNotifications.getPending();
+      const visitNotifications = pending.notifications.filter(
+        n => n.extra?.visitId === visitId
+      );
+
+      if (visitNotifications.length > 0) {
+        await LocalNotifications.cancel({
+          notifications: visitNotifications
+        });
+        console.log(`🗑️ ${visitNotifications.length} notifications annulées pour la visite ${visitId}`);
+      }
+    } catch (error) {
+      console.error('❌ Erreur annulation notifications visite:', error);
+    }
+  }
+
+  // Obtenir toutes les notifications en attente
+  async getPendingNotifications(): Promise<number> {
+    try {
+      const pending = await LocalNotifications.getPending();
+      console.log(`📋 ${pending.notifications.length} notifications en attente`);
+      return pending.notifications.length;
+    } catch (error) {
+      console.error('❌ Erreur récupération notifications:', error);
+      return 0;
+    }
   }
 
   // Tester les notifications (pour développement)
-  async testNotification() {
-    if (!this.isPermissionGranted()) {
-      const permission = await this.requestPermission();
-      if (permission !== 'granted') {
+  async testNotification(): Promise<void> {
+    const hasPermission = await this.isPermissionGranted();
+    
+    if (!hasPermission) {
+      const granted = await this.requestPermission();
+      if (!granted) {
         throw new Error('Permission refusée');
       }
     }
 
-    await this.showVisitNotification({
-      id: 'test-visit',
-      speakerName: 'Test Orateur',
-      date: new Date().toISOString().split('T')[0],
-      time: '14:30',
-      congregation: 'Test Congrégation'
-    }, 0);
+    try {
+      // Notification immédiate
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: 99999,
+            title: '🧪 Test de Notification',
+            body: 'Si vous voyez ceci, les notifications fonctionnent ! ✅',
+            schedule: {
+              at: new Date(Date.now() + 1000) // Dans 1 seconde
+            },
+            sound: 'default',
+            channelId: 'visits',
+            smallIcon: 'ic_stat_icon_config_sample',
+            iconColor: '#e64c19'
+          }
+        ]
+      });
 
-    console.log('Notification de test envoyée');
+      console.log('✅ Notification de test programmée');
+    } catch (error) {
+      console.error('❌ Erreur test notification:', error);
+      throw error;
+    }
   }
 }
 

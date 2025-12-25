@@ -1,8 +1,8 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../DataContext';
 import { Speaker, Host, Visit, NavigationProps } from '../types';
 import { normalizeString } from '../utils/sheetSync';
+import { getFullTitle } from '../utils/assemblyTitles';
 
 interface MessagesViewProps {
   initialProps?: NavigationProps | null;
@@ -139,7 +139,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ initialProps, onActionHandl
       date: nextVisit ? new Date(nextVisit.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long'}) : '[Date]',
       time: nextVisit?.time || '14:30',
       congregation: nextVisit?.congregation || 'notre congrégation',
-      theme: nextVisit?.discoursTitle || '[Sujet]',
+      theme: nextVisit?.discoursTitle ? getFullTitle(nextVisit.discoursTitle) : '[Sujet]',
       arrivalTime: '13h30'
     };
     

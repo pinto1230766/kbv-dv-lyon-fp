@@ -1,15 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense, useEffect } from 'react';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import PlanningView from './components/PlanningView';
-import MessagesView from './components/MessagesView';
-import SpeakersView from './components/SpeakersView';
-import HostsView from './components/HostsView';
-import SettingsView from './components/SettingsView';
 import { TabType, NavigationProps } from './types';
 import { DataProvider, useData } from './DataContext';
+
+// Lazy loading des composants pour améliorer les performances
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const PlanningView = lazy(() => import('./components/PlanningView'));
+const MessagesView = lazy(() => import('./components/MessagesView'));
+const SpeakersView = lazy(() => import('./components/SpeakersView'));
+const HostsView = lazy(() => import('./components/HostsView'));
+const SettingsView = lazy(() => import('./components/SettingsView'));
+const GlobalSearch = lazy(() => import('./components/GlobalSearch'));
+const KeyboardShortcutsModal = lazy(() => import('./components/KeyboardShortcutsModal'));
+
+// Composant de chargement
+const LoadingFallback: React.FC = () => (
+  <div className="flex items-center justify-center h-full">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-sm font-bold text-gray-500 dark:text-gray-400 animate-pulse">
+        Chargement...
+      </p>
+    </div>
+  </div>
+);
 
 const Toast: React.FC = () => {
   const data = useData();
@@ -45,6 +61,9 @@ const Toast: React.FC = () => {
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [initialViewProps, setInitialViewProps] = useState<NavigationProps | null>(null);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const { syncData } = useData();
 
   const handleNavigation = (tab: TabType, props?: NavigationProps) => {
     setActiveTab(tab);
@@ -52,6 +71,59 @@ const AppContent: React.FC = () => {
   };
 
   const clearInitialProps = () => setInitialViewProps(null);
+
+  // Raccourcis clavier globaux
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignorer si dans un input/textarea
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
+      // Ctrl/Cmd + K : Recherche globale
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowGlobalSearch(true);
+        return;
+      }
+
+      // Ctrl/Cmd + S : Synchroniser
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        syncData();
+        return;
+      }
+
+      // Raccourcis simples
+      switch (e.key.toLowerCase()) {
+        case '?':
+          setShowKeyboardHelp(true);
+          break;
+        case '1':
+          handleNavigation('dashboard');
+          break;
+        case '2':
+          handleNavigation('planning');
+          break;
+        case '3':
+          handleNavigation('speakers');
+          break;
+        case '4':
+          handleNavigation('hosts');
+          break;
+        case '5':
+          handleNavigation('messages');
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [syncData]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -72,12 +144,34 @@ const AppContent: React.FC = () => {
       <div className="flex-1 flex flex-col relative overflow-hidden h-full">
         {activeTab === 'dashboard' && <Header onProfileClick={() => setActiveTab('settings')} onNavigate={handleNavigation} />}
         <main className="flex-1 overflow-y-auto no-scrollbar pb-24 md:pb-0 md:p-6 w-full">
-          {renderContent()}
+          <Suspense fallback={<LoadingFallback />}>
+            {renderContent()}
+          </Suspense>
         </main>
         <div className="md:hidden">
           <BottomNav activeTab={activeTab} onTabChange={(tab) => handleNavigation(tab)} />
         </div>
       </div>
+
+      {/* Recherche globale */}
+      {showGlobalSearch && (
+        <Suspense fallback={null}>
+          <GlobalSearch
+            onClose={() => setShowGlobalSearch(false)}
+            onNavigate={(tab, props) => {
+              handleNavigation(tab, props);
+              setShowGlobalSearch(false);
+            }}
+          />
+        </Suspense>
+      )}
+
+      {/* Modal d'aide raccourcis clavier */}
+      {showKeyboardHelp && (
+        <Suspense fallback={null}>
+          <KeyboardShortcutsModal onClose={() => setShowKeyboardHelp(false)} />
+        </Suspense>
+      )}
     </div>
   );
 };
