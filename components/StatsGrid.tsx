@@ -84,38 +84,38 @@ const StatsGrid: React.FC<StatsGridProps> = ({ onNavigate }) => {
   ];
 
   return (
-    <section className="px-3">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+    <section className="px-0">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <div 
             key={stat.id} 
-            className={`relative bg-white dark:bg-card-dark p-4 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col justify-between overflow-hidden cursor-pointer hover:border-primary/30 dark:hover:border-white/20 transition-all active:scale-[0.98] group min-h-[110px]`}
+            className={`relative bg-white dark:bg-card-dark p-5 rounded-2xl border border-gray-200 dark:border-white/5 shadow-lg flex flex-col justify-between overflow-hidden cursor-pointer hover:border-primary/30 dark:hover:border-white/20 transition-all active:scale-[0.98] group min-h-[140px]`}
             onClick={() => onNavigate(stat.tab, stat.props)}
           >
             {/* Background Gradient Decoration */}
             <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-50`}></div>
             
-            {/* Icon Background Decoration */}
-            <div className={`absolute -right-3 -top-3 p-3 rounded-full opacity-[0.03] dark:opacity-[0.05] group-hover:scale-110 transition-transform duration-500`}>
-                 <span className="material-symbols-outlined text-7xl">{stat.icon}</span>
+            {/* Icon Background Decoration - Large */}
+            <div className={`absolute -right-4 -top-4 opacity-[0.04] dark:opacity-[0.06] group-hover:scale-110 transition-transform duration-700`}>
+                 <span className="material-symbols-outlined text-8xl">{stat.icon}</span>
             </div>
 
             <div className="flex justify-between items-start relative z-10">
-              <div className={`p-1.5 rounded-lg bg-white dark:bg-white/5 shadow-sm border border-gray-100 dark:border-white/5 ${stat.color}`}>
-                <span className="material-symbols-outlined text-lg block">{stat.icon}</span>
+              <div className={`p-2 rounded-xl bg-white dark:bg-white/5 shadow-md border border-gray-100 dark:border-white/5 ${stat.color}`}>
+                <span className="material-symbols-outlined text-xl block">{stat.icon}</span>
               </div>
               
               {stat.trendType === 'urgent' && (
-                  <span className="flex h-2.5 w-2.5">
+                  <span className="flex h-3 w-3">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
                   </span>
               )}
             </div>
             
-            <div className="relative z-10 mt-3">
-              <p className="text-3xl font-black text-gray-900 dark:text-white leading-none tracking-tight">{stat.value}</p>
-              <p className="text-xs font-bold text-gray-500 dark:text-text-secondary mt-1 uppercase tracking-wide truncate">{stat.label}</p>
+            <div className="relative z-10 mt-4">
+              <p className="text-5xl font-black text-gray-900 dark:text-white leading-none tracking-tighter">{stat.value}</p>
+              <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-2">{stat.label}</p>
             </div>
           </div>
         ))}

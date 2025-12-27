@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #e64c19;
+  --color-primary-light: #ff7d4d;
+  --color-primary-dark: #cc3f12;
+  --color-background-light: #f2f2f7;
+  --color-background-dark: #1c1c1e;
+  --color-card-light: #ffffff;
+  --color-card-dark: #2c2c2e;
+  --color-card-hover-dark: #3a3a3c;
+  --color-card-hover-light: #f9f9f9;
+  --color-surface-dark: #2c2c2e;
+  --color-surface-light: #ffffff;
+  --color-surface-highlight: #472d24;
+  --color-text-secondary: #8e8e93;
+  --color-text-muted: #aeaeb2;
+  --color-accent-gold: #d4a017;
+
+  --font-sans: "Inter", "sans-serif";
+}
+
+/* Force Tailwind v4 to support .dark class toggle */
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
+}

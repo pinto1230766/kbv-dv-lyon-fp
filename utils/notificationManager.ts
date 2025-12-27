@@ -1,4 +1,5 @@
 import { LocalNotifications, ScheduleOptions } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 import type { Visit } from '../types';
 
 // Gestionnaire de notifications natives pour Android via Capacitor
@@ -10,6 +11,12 @@ export class NotificationManager {
   }
 
   private async initialize() {
+    // Ne pas initialiser les notifications natives sur le Web
+    if (!Capacitor.isNativePlatform()) {
+      console.log('ℹ️ Notifications natives désactivées (Plateforme Web)');
+      return;
+    }
+
     try {
       // Vérifier et demander les permissions
       const permission = await LocalNotifications.checkPermissions();
@@ -82,6 +89,8 @@ export class NotificationManager {
 
   // Programmer une notification pour une visite
   async scheduleVisitNotification(visit: Visit, daysBefore: number = 1): Promise<void> {
+    if (!Capacitor.isNativePlatform()) return;
+
     const hasPermission = await this.isPermissionGranted();
     
     if (!hasPermission) {

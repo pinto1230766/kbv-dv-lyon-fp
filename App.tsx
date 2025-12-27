@@ -41,7 +41,7 @@ const Toast: React.FC = () => {
   const currentConfig = config[toast.type] || config.info;
 
   return (
-    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[300] animate-in slide-in-from-top-4 fade-in duration-300 w-[90%] max-w-sm">
+    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-300 animate-in slide-in-from-top-4 fade-in duration-300 w-[90%] max-w-sm">
       <div className={`${currentConfig.bg} text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20`}>
         <div className="bg-white/20 rounded-full p-1.5 flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-[24px]">{currentConfig.icon}</span>

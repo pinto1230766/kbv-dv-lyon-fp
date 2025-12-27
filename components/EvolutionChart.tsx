@@ -38,9 +38,9 @@ const EvolutionChart: React.FC = () => {
 
   return (
     <section className="px-4">
-      <h3 className="text-lg font-bold tracking-tight mb-3 text-gray-900 dark:text-white">Évolution mensuelle</h3>
-      <div className="bg-white dark:bg-card-dark rounded-2xl border border-gray-200 dark:border-white/5 p-3 shadow-sm h-[140px] md:h-[160px]">
-        <ResponsiveContainer width="100%" height={100}>
+      <h3 className="text-lg font-bold tracking-tight mb-4 text-gray-900 dark:text-white">Évolution mensuelle</h3>
+      <div className="bg-white dark:bg-card-dark rounded-2xl p-4 border border-gray-200 dark:border-white/5 shadow-lg h-[200px]">
+        <ResponsiveContainer width="100%" height={160}>
             <BarChart data={data} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorActive" x1="0" y1="0" x2="0" y2="1">

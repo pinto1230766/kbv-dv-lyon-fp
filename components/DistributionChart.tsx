@@ -43,10 +43,10 @@ const DistributionChart: React.FC = () => {
 
   return (
     <section className="px-4">
-      <h3 className="text-lg font-bold tracking-tight mb-3 text-gray-900 dark:text-white">Répartition</h3>
-      <div className="bg-white dark:bg-card-dark rounded-2xl p-3 border border-gray-200 dark:border-white/5 flex items-center justify-between shadow-sm h-[140px] md:h-[160px]">
-        <div className="relative w-28 h-28 shrink-0">
-          <ResponsiveContainer width="100%" height={112}>
+      <h3 className="text-lg font-bold tracking-tight mb-4 text-gray-900 dark:text-white">Répartition</h3>
+      <div className="bg-white dark:bg-card-dark rounded-2xl p-4 border border-gray-200 dark:border-white/5 flex items-center justify-between shadow-lg h-[200px]">
+        <div className="relative w-36 h-36 shrink-0">
+          <ResponsiveContainer width="100%" height={144}>
             <PieChart>
               <Pie
                 data={data}
@@ -71,17 +71,17 @@ const DistributionChart: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex flex-col gap-3 flex-1 ml-6 justify-center">
+        <div className="flex flex-col gap-4 flex-1 ml-10 justify-center">
           {dataWithPercent.map((item) => (
             <div key={item.name} className="flex items-center justify-between group cursor-default">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-6 rounded-full" style={{ backgroundColor: item.color }}></div>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-8 rounded-full shadow-sm" style={{ backgroundColor: item.color }}></div>
                 <div className="flex flex-col">
-                    <span className="text-xs font-bold text-gray-700 dark:text-white leading-none">{item.name}</span>
-                    <span className="text-[10px] text-gray-400 dark:text-text-secondary mt-0.5 font-medium">{item.value} visites</span>
+                    <span className="text-sm font-bold text-gray-800 dark:text-white leading-none">{item.name}</span>
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-semibold">{item.value} visites</span>
                 </div>
               </div>
-              <span className="text-xs font-black text-gray-900 dark:text-white/80">{item.percent}%</span>
+              <span className="text-sm font-black text-gray-900 dark:text-white">{item.percent}%</span>
             </div>
           ))}
         </div>

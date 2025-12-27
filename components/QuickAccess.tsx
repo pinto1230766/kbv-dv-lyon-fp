@@ -67,29 +67,29 @@ const QuickAccess: React.FC<QuickAccessProps> = ({ onAction }) => {
 
   return (
     <section className="px-4">
-      <h3 className="text-lg font-bold tracking-tight mb-3 text-gray-900 dark:text-white">Accès rapide</h3>
-      <div className="grid grid-cols-2 gap-3">
+      <h3 className="text-xl font-bold tracking-tight mb-4 text-gray-900 dark:text-white">Accès rapide</h3>
+      <div className="grid grid-cols-2 gap-4">
         {actions.map((item) => (
           <button 
             key={item.id}
             onClick={() => handleClick(item)}
             disabled={item.id === 'sync' && isSyncing}
-            className={`relative flex flex-col items-start justify-center p-4 rounded-2xl shadow-sm transition-all active:scale-[0.98] ${item.bg} h-28 group overflow-hidden`}
+            className={`relative flex flex-col items-start justify-center p-5 rounded-2xl shadow-lg transition-all active:scale-[0.98] ${item.bg} h-32 group overflow-hidden`}
           >
-            <div className={`mb-3 p-2 rounded-xl ${item.id === 'visit' ? 'bg-white/20' : 'bg-gray-50 dark:bg-white/5'} ${item.iconColor}`}>
-              <span className="material-symbols-outlined text-2xl">{item.icon}</span>
+            <div className={`mb-4 p-2.5 rounded-xl ${item.id === 'visit' ? 'bg-white/20' : 'bg-gray-50 dark:bg-white/5'} ${item.iconColor}`}>
+              <span className="material-symbols-outlined text-3xl">{item.icon}</span>
             </div>
             <div className="flex flex-col items-start z-10">
-                <span className="text-sm font-bold leading-tight">
+                <span className="text-base font-bold leading-tight">
                 {item.label}
                 </span>
-                <span className={`text-[10px] font-medium mt-0.5 ${item.id === 'visit' ? 'text-white/80' : 'text-gray-500 dark:text-text-secondary'}`}>
+                <span className={`text-[11px] font-medium mt-1 ${item.id === 'visit' ? 'text-white/80' : 'text-gray-500 dark:text-text-secondary'}`}>
                     {item.sub}
                 </span>
             </div>
             
             {/* Decoration circle */}
-            <div className={`absolute -right-4 -bottom-4 w-20 h-20 rounded-full opacity-10 ${item.id === 'visit' ? 'bg-white' : 'bg-current'} group-hover:scale-110 transition-transform duration-500 pointer-events-none`}></div>
+            <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-10 ${item.id === 'visit' ? 'bg-white' : 'bg-current'} group-hover:scale-110 transition-transform duration-700 pointer-events-none`}></div>
           </button>
         ))}
       </div>

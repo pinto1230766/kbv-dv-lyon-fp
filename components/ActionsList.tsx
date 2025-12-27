@@ -64,47 +64,47 @@ const ActionsList: React.FC<ActionsListProps> = ({ onNavigate }) => {
   }
   
   return (
-    <section className="px-4 pb-4">
-      <div className="flex items-center justify-between mb-3">
+    <section className="px-0 pb-4">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <h3 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">Actions requises</h3>
-          <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm shadow-red-500/30">{actions.length}</span>
+          <h3 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Actions requises</h3>
+          <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-md shadow-red-500/30">{actions.length}</span>
         </div>
         {totalPages > 1 && (
-            <div className="flex gap-1">
-                <button onClick={handlePrevPage} disabled={currentPage === 1} className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">
-                    <span className="material-symbols-outlined text-sm">chevron_left</span>
+            <div className="flex gap-2">
+                <button onClick={handlePrevPage} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-200 transition-colors">
+                    <span className="material-symbols-outlined text-lg">chevron_left</span>
                 </button>
-                <button onClick={handleNextPage} disabled={currentPage === totalPages} className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">
-                    <span className="material-symbols-outlined text-sm">chevron_right</span>
+                <button onClick={handleNextPage} disabled={currentPage === totalPages} className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-200 transition-colors">
+                    <span className="material-symbols-outlined text-lg">chevron_right</span>
                 </button>
             </div>
         )}
       </div>
       
-      <div className="flex flex-col gap-3 max-h-56 overflow-y-auto">
+      <div className="flex flex-col gap-3">
         {paginatedActions.map((item) => (
           <div 
             key={item.id} 
-            className="group bg-white dark:bg-card-dark p-3 rounded-2xl border border-transparent dark:border-white/5 shadow-sm hover:shadow-md transition-all active:scale-[0.99] flex items-center gap-3 cursor-pointer"
+            className="group bg-white dark:bg-card-dark p-3 rounded-2xl border border-transparent dark:border-white/5 shadow-md hover:shadow-lg transition-all active:scale-[0.99] flex items-center gap-4 cursor-pointer h-20"
             onClick={() => handleNavigate(item)}
           >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.color}`}>
-              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${item.color} shadow-sm`}>
+              <span className="material-symbols-outlined text-2xl">{item.icon}</span>
             </div>
             
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-gray-900 dark:text-white truncate leading-tight">{item.title}</p>
-              <p className="text-[11px] text-gray-500 dark:text-text-secondary truncate mt-0.5">{item.subtitle}</p>
+              <p className="text-base font-bold text-gray-900 dark:text-white truncate leading-tight">{item.title}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1 font-medium">{item.subtitle}</p>
             </div>
             
-            <div className="flex items-center gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-2">
                 <button 
                   onClick={(e) => handleDismiss(e, item.id)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 dark:bg-white/5 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors"
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 dark:bg-white/5 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors shadow-sm"
                   title="Marquer comme fait"
                 >
-                  <span className="material-symbols-outlined text-lg">check</span>
+                  <span className="material-symbols-outlined text-xl">check</span>
                 </button>
             </div>
           </div>
